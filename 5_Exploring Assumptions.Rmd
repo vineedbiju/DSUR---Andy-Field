@@ -1,0 +1,192 @@
+---
+title: "5 - Exploring Assumptions"
+output: html_notebook
+
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(psych)
+library(pastecs) #stat.desc
+library(car) #levene test
+```
+
+
+```{r}
+dlf <- read_tsv("data/DownloadFestival(No Outlier).dat", col_names = T)
+
+par(mfrow=c(2,2))
+
+#Histogram Day 1
+
+hist.day1 <- ggplot(dlf, aes(x = day1))+
+  geom_histogram(aes(y = ..density..), 
+                 fill = "White", color = "black", bins = 50) #density to plot normal. If counts, then the normal would not work
+
+# Now we are adding a normal curve over the histogram with same mean and sd
+
+hist.day1 + stat_function(fun = dnorm, 
+                          args = list(mean = mean(dlf$day1,na.rm = T), 
+                                      sd = sd(dlf$day1, na.rm = T)), 
+                          color = "black", size = 1)
+
+#Histogram Day 2
+
+hist.day2 <- ggplot(dlf, aes(x = day2))+
+  geom_histogram(aes(y = ..density..),fill = "white", 
+                 color = "black", bins = 50)
+ 
+
+hist.day2 +  stat_function(fun = dnorm, 
+                           args = list(mean = mean(dlf$day2, na.rm = T),
+                                         sd = sd(dlf$day2, na.rm = T)),
+                           color = "black", size = 1)
+
+#Histogram Day 3
+
+hist.day3 <- ggplot(dlf, aes(x = day3))+
+  geom_histogram(aes(y = ..density..),fill = "white", 
+                 color = "black", bins = 50)
+ 
+
+hist.day3 +  stat_function(fun = dnorm, 
+                           args = list(mean = mean(dlf$day3, na.rm = T),
+                                         sd = sd(dlf$day3, na.rm = T)),
+                           color = "black", size = 1)
+
+```
+Comparing using QQ plot
+
+```{r}
+qqplot.day1 <- qplot(sample = dlf$day1, geom = "qq")
+qqplot.day1
+qqplot.day2 <- qplot(sample = dlf$day2, geom = "qq")
+qqplot.day2
+qqplot.day3 <- qplot(sample = dlf$day3, geom = "qq")
+qqplot.day3
+```
+
+Quantifying Normality with numbers
+```{r}
+describe(select(dlf, day1, day2, day3))
+stat.desc(select(dlf, day1:day3), basic = F, norm = T)
+
+#Rounding the data
+round(describe(select(dlf, day1, day2, day3)), digits = 3)
+
+round(stat.desc(select(dlf, day1:day3), basic = F, norm = T), digits = 3)
+```
+Exploring Groups of Data
+
+```{r}
+rexam <- read_tsv("data/RExam.dat", col_names = T)
+rexam$uni <- factor(rexam$uni, levels = c(0:1), 
+                    labels = c("Duncetown University", 
+                               "Sussex Univeristy"))
+
+#Histogram + Normal Graph - Exam Score
+ggplot(rexam, aes(x = exam))+
+  geom_histogram(aes(y = ..density..), fill = "White", color = "Black") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(rexam$exam, na.rm = T),
+                            sd = sd(rexam$exam, na.rm = T)), 
+                color = "black", size = 1)
+
+#Histogram + Normal Graph - Literacy Score 
+ggplot(rexam, aes(x = computer))+
+  geom_histogram(aes(y = ..density..), fill = "White", color = "Black") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(rexam$computer, na.rm = T),
+                            sd = sd(rexam$computer, na.rm = T)), 
+                color = "black", size = 1)
+
+#Histogram + Normal Graph - Numeracy Score 
+ggplot(rexam, aes(x = numeracy))+
+  geom_histogram(aes(y = ..density..), fill = "White", color = "Black") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(rexam$numeracy, na.rm = T),
+                            sd = sd(rexam$numeracy, na.rm = T)), 
+                color = "black", size = 1) 
+
+#Histogram + Normal Graph - Lectures Attended 
+ggplot(rexam, aes(x = lectures))+
+  geom_histogram(aes(y = ..density..), fill = "White", color = "Black") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(rexam$lectures, na.rm = T),
+                            sd = sd(rexam$lectures, na.rm = T)), 
+                color = "black", size = 1)
+
+round(stat.desc(select(rexam, -uni), norm = T), digit = 3)
+```
+
+Running analysis by different groups
+
+```{r}
+by(rexam %>% select(-uni), 
+   rexam$uni, stat.desc, basic = F, norm = T)
+
+(dunce_data <- rexam %>% filter(uni =="Duncetown University"))
+Sussex_data <- rexam %>% filter(uni =="Sussex Univeristy")
+
+ggplot(dunce_data, aes(x = exam))+
+  geom_histogram(aes(y = ..density..), fill = "White", color = "Black") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(dunce_data$exam, na.rm = T),
+                            sd = sd(dunce_data$exam, na.rm = T)), 
+                color = "black", size = 1)
+
+ggplot(Sussex_data, aes(x = exam))+
+  geom_histogram(aes(y = ..density..), fill = "White", color = "Black") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(Sussex_data$exam, na.rm = T),
+                            sd = sd(Sussex_data$exam, na.rm = T)), 
+                color = "black", size = 1)
+
+```
+Levene's Test for Homoskedasticity
+
+```{r}
+leveneTest(rexam$exam, rexam$uni) #median, preferred
+leveneTest(rexam$exam, rexam$uni, center = mean)
+
+leveneTest(rexam$numeracy, rexam$uni) 
+
+```
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
