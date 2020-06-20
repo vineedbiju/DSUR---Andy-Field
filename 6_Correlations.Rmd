@@ -1,0 +1,132 @@
+---
+title: "06 - Correlation"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+```{r}
+library(tidyverse)
+library(boot)
+library(ggm)
+library(ggplot2)
+library(polycor)
+```
+```{r}
+advertData <- tibble(
+  ads = c(5,4,4,6,8),
+  packets = c(8,9,10,13,15)
+)
+
+cov(advertData) #diagonal will give covariance
+cor(advertData)
+
+cov(advertData$ads,advertData$ads)
+```
+```{r}
+exam_data <- read.table("data/Exam Anxiety.dat", header = T)
+exam_data$Gender <- factor(exam_data$Gender)
+identical(exam_data,Exam_Anxiety)
+
+cor(exam_data[,-5], use = "complete.obs", method = "pearson")
+cor(exam_data$Exam, exam_data$Anxiety)
+cor(exam_data$Exam, exam_data$Anxiety, method = "kendall")
+#pairwise.complete.obs - Excludes only the missing values for that particular calculation
+#complete.obs - Excludes the full observation from any calculations
+#everything - returns NA if any missing value is encountered
+#all.obs - returns an error if any missing value encountered
+
+exam_data2 <- exam_data[,c(-1,-5)]
+cor(exam_data2) #gives the pearson correlation
+
+#to check the p-value, use rcorr() in Hmisc library
+Hmisc::rcorr(as.matrix(exam_data2)) #significance of p~0, implying significance
+
+#for CI, use cor.test()
+cor.test(exam_data$Exam, exam_data$Anxiety) #this implies that the true relationship between exam and anxiety is indeed real and (-)ve
+
+#to calculate Rsquared
+cor(exam_data2)^2 * 100
+
+```
+Spearman's Rho Correlation Coefficient
+
+```{r}
+liar_data <- read_tsv("data/The Biggest Liar.dat", col_names = T)
+View(liar_data)
+
+cor(liar_data[,1:2],use = "pairwise.complete.obs", method = "spearman")
+#to get p value, use rcorr()
+Hmisc::rcorr(liarMatrix <- as.matrix(liar_data[,1:2]), type = "spearman")
+cor.test(liar_data$Creativity, liar_data$Position, method = "spearman")
+```
+
+Kendall's tau (non Parametric)
+```{r}
+cor(liar_data[,1:2], use = "pairwise.complete.obs", method = "kendall")
+cor.test(liar_data$Position, liar_data$Creativity, method = "kendall")
+```
+Bootstrapping Correlations
+```{r}
+boot_tau <- function(liar_data, i)cor(liar_data$Position[i], liar_data$Creativity[i], use = "pairwise.complete.obs", method = "kendall")
+
+library(boot)
+boot_kendall <- boot(liar_data, boot_tau, 2000)
+boot_kendall
+boot.ci(boot_kendall)
+
+boot_rho <- function(liar_data,i)
+  {cor(liar_data$Position[i], liar_data$Creativity[i], method = "spearman")}
+boot_spearman <- boot(liar_data, boot_rho, 2000)
+boot_spearman
+boot.ci(boot_spearman)
+```
+
+Biserial and point-biserial correlations
+```{r}
+#Point Bi-serial Correlation - Discrete Dichotomy present
+cat_data <- read_csv("data/pbcorr.csv", col_names  = T)
+cor(cat_data[,1:2], use = "complete.obs", method = "pearson")
+cor.test(cat_data$time, cat_data$gender)
+
+#Bi-Serial Correlation - Continuum Dichotomy
+polyserial(cat_data$time, cat_data$gender)
+```
+
+Partial Correlation
+```{r}
+View(exam_data2)
+
+library(ggm)
+pc <- pcor(c("Exam", "Anxiety", "Revise"), var(exam_data2))
+pc
+pc^2
+pcor.test(pc, 1, 103)
+
+exam_data_male <- exam_data %>% filter(Gender=="Male") %>% select(-1,-5)
+cor(exam_data_male)
+exam_data_female <-  exam_data %>% filter(Gender=="Female") %>% select(-1,-5)
+cor(exam_data_female)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
