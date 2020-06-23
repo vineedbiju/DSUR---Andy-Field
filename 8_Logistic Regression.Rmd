@@ -1,0 +1,158 @@
+---
+title: "08 - Logistic Regression"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(car)
+library(mlogit)
+library(forcats)
+library(stringr)
+```
+```{r}
+eel_data <- read_tsv("data/eel.dat", col_types = cols(
+  Cured = col_factor(),
+  Intervention = col_factor()
+))
+glimpse(eel_data)
+
+#Establishing Baseline
+eel_data$Cured <- relevel(eel_data$Cured, "Not Cured")
+eel_data$Intervention <- relevel(eel_data$Intervention, "No Treatment")
+
+eel_model.1 <- glm(Cured~Intervention, data = eel_data, family = binomial())
+eel_model.2 <- glm(Cured~Intervention+Duration, data = eel_data, family = binomial())
+
+summary(eel_model.1)
+chisq <-  eel_model.1$null.deviance - eel_model.1$deviance
+chidf <- eel_model.1$df.null - eel_model.1$df.residual
+chisq.prob <- 1 - pchisq(chisq, chidf)
+chisq.prob #p value for model better than null model
+
+
+summary(eel_model.2)
+chisq <- eel_model.1$deviance - eel_model.2$deviance
+chidf <- eel_model.1$df.residual - eel_model.2$df.residual
+chisq.prob <- 1 - pchisq(chisq, chidf)
+chisq.prob #p value>0.5 --> not significant
+chisq 
+chidf
+
+anova(eel_model.1,eel_model.2) #gives the chisq value above. Not the P-value
+```
+Basic Diagnostic Statistics
+```{r}
+eel_data$predicted.probabilities <- fitted(eel_model.1)
+eel_data$standardized.residuals <- rstandard(eel_model.1)
+eel_data$studentized.residuals <- rstudent(eel_model.1)
+eel_data$dfbeta <- dfbeta(eel_model.1)
+eel_data$dffit <- dffits(eel_model.1)
+eel_data$leverage <- hatvalues(eel_model.1)
+
+eel_data %>% select(Cured, Intervention, Duration, predicted.probabilities) %>% head(10)
+
+eel_data %>% select(leverage, studentized.residuals, standardized.residuals) %>% arrange(studentized.residuals)
+```
+
+Testing Assumptions
+
+```{r}
+penalty_data <- read_tsv("data/penalty.dat", col_types = cols(
+  Scored = col_factor()
+)) 
+penalty_data$Scored <- fct_relevel(penalty_data$Scored, "Missed Penalty")
+penalty_Model.1 <- glm(Scored~Previous + PSWQ, data = penalty_data, 
+                       family = binomial())
+penalty_Model.2 <- glm(Scored~Previous + PSWQ + Anxious, data = penalty_data, 
+                       family = binomial())
+
+summary(penalty_Model.1)
+summary(penalty_Model.2)
+```
+
+Testing for multicollinearity
+```{r}
+vif(penalty_Model.2) #2 values greater than 10 implying collinearity
+cor(penalty_data[,1:3]) #high collinearity  between anxious and previous. We can choose to ignore it and move with model1. But this might lead to loss of data. Another method is to check if we can use PCA to get a factor and use that factor as a predictor. In statistics there is no answer. Use intuition and domain knowledge to try out strategies.
+```
+
+Testing for Linearity of logit
+```{r}
+#each variable has to be linearly related to the log of the outcome variable(scored)
+penalty_data <- penalty_data %>% mutate(
+  logPSWQInt = log(PSWQ)*PSWQ,
+  logAnxInt = log(Anxious)*Anxious,
+  logPrevInt = log(Previous)*Previous
+)
+head(penalty_data,10)
+
+penalty_data_linearTest1 <- glm(Scored~., data = penalty_data, 
+                                family = binomial())
+
+summary(penalty_data_linearTest1) #since all interaction terms as not significant, none of the orginal terms violate the linearity with log(outcome+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

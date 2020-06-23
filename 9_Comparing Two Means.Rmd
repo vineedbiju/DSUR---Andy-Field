@@ -1,0 +1,111 @@
+---
+title: "09 - Comparing Two Means"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(pastecs)
+
+```
+
+
+```{r}
+spider_long <- read_tsv("data/SpiderLong.dat", col_types = cols(
+  Group = col_factor()
+))
+spider_wide <- read_tsv("data/SpiderWide.dat")
+
+par(mfrow = c(2,1))
+#Bar with mean and error bar with 95% Confidence Interval
+spider_long %>% ggplot(aes(x = Group, y = Anxiety, fill = Group))+
+  stat_summary(geom = "bar", fun = mean)+
+  stat_summary(geom = "errorbar", fun.data = mean_cl_normal, width = .2) +
+  labs(title = "Independent Design")
+
+#To plot spider_wide, gather both points into a new column with key = treatment and value = score. We will end up with the same table as spider_long
+
+#to correct repeated measures error bar (to reflect increased sensitivity)
+spider_wide$pMean <- (spider_wide$picture + spider_wide$real)/2
+grandMean <- mean(c(spider_wide$picture, spider_wide$real))
+spider_wide$adj <- grandMean - spider_wide$pMean 
+spider_wide$picture_adj <- spider_wide$picture + spider_wide$adj
+spider_wide$real_adj <- spider_wide$real + spider_wide$adj
+
+spider_wide %>% gather("picture_adj", "real_adj", key = "Group", value = Anxiety) %>% ggplot(aes(x = Group, y = Anxiety)) +
+  stat_summary(aes(fill = Group), fun = mean, geom = "bar") +
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width = 0.2) +
+  labs(title = "Repeated Design")
+```
+
+Independent t-test using R
+
+```{r}
+ind.t.test <- t.test(Anxiety ~ Group, data = spider_long)
+ind.t.test
+```
+
+Dependent t-test
+
+```{r}
+stat.desc(spider_wide$picture - spider_wide$real, basic = F, norm = T)
+
+dep.t.test <- t.test(spider_wide$real, spider_wide$picture, paired = T)
+dep.t.test
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
